@@ -2,11 +2,18 @@ package com.cubixedu.hr.sample.dto;
 
 import java.time.LocalDateTime;
 
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Positive;
+
 public class EmployeeDto {
 	private long id;
+	@NotEmpty
 	private String name;
 	private String title;
+	@Positive
 	private int salary;
+	@Past
 	private LocalDateTime entryDate;
 
 	public EmployeeDto() {

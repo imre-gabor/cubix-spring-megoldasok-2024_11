@@ -20,7 +20,10 @@ import org.springframework.web.server.ResponseStatusException;
 import com.cubixedu.hr.sample.dto.EmployeeDto;
 import com.cubixedu.hr.sample.mapper.EmployeeMapper;
 import com.cubixedu.hr.sample.model.Employee;
+import com.cubixedu.hr.sample.repository.EmployeeRepository;
 import com.cubixedu.hr.sample.service.EmployeeService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -32,6 +35,9 @@ public class EmployeeController {
 
 	@Autowired
 	private EmployeeMapper employeeMapper;
+	
+	@Autowired
+	private EmployeeRepository employeeRepository;
 	
 	//1. megoldás
 //	@GetMapping
@@ -51,7 +57,7 @@ public class EmployeeController {
 	public List<EmployeeDto> findAll(@RequestParam Optional<Integer> minSalary){
 		List<Employee> employees = null;
 		if (minSalary.isPresent()) {
-			// employees = employeeRepository.findBySalaryGreaterThan(minSalary);
+			employees = employeeRepository.findBySalaryGreaterThan(minSalary.get());
 		} else {
 			employees = employeeService.findAll();
 		}
@@ -68,19 +74,21 @@ public class EmployeeController {
 	}
 	
 	@PostMapping
-	public EmployeeDto create(@RequestBody EmployeeDto employeeDto) {
-		return employeeMapper.employeeToDto(employeeService.save(employeeMapper.dtoToEmployee(employeeDto)));
+	public EmployeeDto create(@RequestBody @Valid EmployeeDto employeeDto) {
+		return employeeMapper.employeeToDto(
+				employeeService.save(
+						employeeMapper.dtoToEmployee(employeeDto)));
 	}
 	
 	
 	@PutMapping("/{id}")
-	public ResponseEntity<EmployeeDto> update(@PathVariable long id, @RequestBody EmployeeDto employeeDto) {
+	public EmployeeDto update(@PathVariable long id, @RequestBody @Valid EmployeeDto employeeDto) {
 		employeeDto.setId(id);
 		Employee updatedEmployee = employeeService.update(employeeMapper.dtoToEmployee(employeeDto));
 		if (updatedEmployee == null) {
-			return ResponseEntity.notFound().build();
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		} else {
-			return ResponseEntity.ok(employeeMapper.employeeToDto(updatedEmployee));
+			return employeeMapper.employeeToDto(updatedEmployee);
 		}
 	}
 	
