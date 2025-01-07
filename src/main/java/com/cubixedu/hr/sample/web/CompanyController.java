@@ -1,15 +1,10 @@
 package com.cubixedu.hr.sample.web;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,32 +18,30 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cubixedu.hr.sample.dto.CompanyDto;
 import com.cubixedu.hr.sample.dto.EmployeeDto;
-import com.cubixedu.hr.sample.dto.Views;
 import com.cubixedu.hr.sample.mapper.CompanyMapper;
+import com.cubixedu.hr.sample.model.AverageSalaryByPosition;
 import com.cubixedu.hr.sample.model.Company;
+import com.cubixedu.hr.sample.repository.CompanyRepository;
 import com.cubixedu.hr.sample.service.CompanyService;
-import com.fasterxml.jackson.annotation.JsonView;
 
 @RestController
 @RequestMapping("/api/companies")
 public class CompanyController {
 	
 	@Autowired
-	CompanyService companyService;
+	private CompanyService companyService;
 	
 	@Autowired
-	CompanyMapper companyMapper;
+	private CompanyMapper companyMapper;
+	
+	@Autowired
+	CompanyRepository companyRepository;
 
 	
 	//1. megoldás
 	@GetMapping
 	public List<CompanyDto> findAll(@RequestParam Optional<Boolean> full) {
-		List<Company> companies = companyService.findAll();
-		if(full.orElse(false)) {
-			return companyMapper.companiesToDtos(companies);
-		} else {
-			return companyMapper.companiesToSummaryDtos(companies);
-		}
+		return mapCompanies(companyService.findAll(), full);
 	}
 	
 	//2. megoldás a full paraméter kezelésére
@@ -115,5 +108,38 @@ public class CompanyController {
 		Company company = companyService.replaceEmployees(id, companyMapper.dtosToEmployees(newEmployees));
 		return companyMapper.companyToDto(company);
 	}
+	
+	
+	@GetMapping(params = "aboveSalary")
+	public List<CompanyDto> getCompaniesAboveSalary(@RequestParam int aboveSalary,
+			@RequestParam Optional<Boolean> full) {
+		List<Company> filteredCompanies = companyRepository.findByEmployeeWithSalaryHigherThan(aboveSalary);
+		return mapCompanies(filteredCompanies, full);
+	}
 
+	@GetMapping(params = "aboveEmployeeCount")
+	public List<CompanyDto> getCompaniesAboveEmployeeCount(@RequestParam int aboveEmployeeCount,
+			@RequestParam Optional<Boolean> full) {
+		List<Company> filteredCompanies = companyRepository.findByEmployeeCountHigherThan(aboveEmployeeCount);
+		return mapCompanies(filteredCompanies, full);
+	}
+
+	@GetMapping("/{id}/salaryStats")
+	public List<AverageSalaryByPosition> getSalaryStatsById(@PathVariable long id) {
+		return companyRepository.findAverageSalariesByPosition(id);
+	}
+
+	private List<CompanyDto> mapCompanies(List<Company> companies, Optional<Boolean> full) {
+		if (full.orElse(false)) {
+			return companyMapper.companiesToDtos(companies);
+		} else {
+			return companyMapper.companiesToSummaryDtos(companies);
+		}
+	}
+
+	private Company getCompanyOrThrow(long id) {
+		return companyService.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
+	
 }
