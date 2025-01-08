@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.SortDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -54,10 +56,18 @@ public class EmployeeController {
 	
 	//2. megoldás
 	@GetMapping
-	public List<EmployeeDto> findAll(@RequestParam Optional<Integer> minSalary){
+	public List<EmployeeDto> findAll(@RequestParam Optional<Integer> minSalary, 
+			//page, size, sort nevű query paraméterekből állítja össze
+			@SortDefault("employeeId") Pageable pageable
+			){
 		List<Employee> employees = null;
 		if (minSalary.isPresent()) {
-			employees = employeeRepository.findBySalaryGreaterThan(minSalary.get());
+			Page<Employee> employeePage = employeeRepository.findBySalaryGreaterThan(minSalary.get(), pageable);
+			System.out.println(employeePage.getTotalElements());
+			System.out.println(employeePage.isLast());
+			System.out.println(employeePage.isFirst());
+			System.out.println(employeePage.getTotalPages());
+			employees = employeePage.getContent();
 		} else {
 			employees = employeeService.findAll();
 		}

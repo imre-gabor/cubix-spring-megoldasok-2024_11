@@ -1,6 +1,7 @@
 package com.cubixedu.hr.sample.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cubixedu.hr.sample.model.Employee;
 import com.cubixedu.hr.sample.repository.EmployeeRepository;
@@ -30,4 +31,24 @@ public class SalaryService {
 		employee.setSalary(newSalary);
 	}
 
+	
+	@Transactional
+	public void raiseMinSalary(long companyId, String positionName, int minSalary) {
+		
+		positionDetailsByCompanyRepository.findByPositionNameAndCompanyId(positionName, companyId)
+		.forEach(pd -> {
+			pd.setMinSalary(minSalary);
+			//1. megoldás: sok SQL UPDATE utasítást generál --> teljesítmény probléma lehet
+//			pd.getCompany().getEmployees().forEach(e ->{
+//				if(e.getPosition().getName().equals(positionName) 
+//						&& e.getSalary() < minSalary)
+//					e.setSalary(minSalary);
+//			});
+			//2. megoldás --> egyetlen SQL UPDATE utasítás lesz 
+			employeeRepository.updateSalaries(companyId, positionName, minSalary);
+			
+		});
+		
+	}
+	
 }
