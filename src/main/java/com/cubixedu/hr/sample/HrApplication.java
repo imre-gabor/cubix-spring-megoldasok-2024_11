@@ -33,7 +33,11 @@ public class HrApplication implements CommandLineRunner {
 	
 	@Override
 	public void run(String... args) throws Exception {
+		
+		initDbService.clearDb();
 		initDbService.initDb();
+		
+		
 		Smart smartConfig = config.getSalary().getSmart();
 		for (Double limit : 
 				smartConfig.getLimits().keySet()
