@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public class HolidayRequestFilterDto {
 	private LocalDateTime createDateTimeStart;
-	private LocalDateTime createDateTimeEnd;	
+	private LocalDateTime createDateTimeEnd;
 	private String employeeName;
 	private String approverName;
 	private Boolean approved;

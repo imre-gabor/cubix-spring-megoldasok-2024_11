@@ -34,4 +34,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 	@Modifying
 	void updateSalaries(long companyId, String positionName, int minSalary);
 
+	Optional<Employee> findByUsername(String username);
+
 }

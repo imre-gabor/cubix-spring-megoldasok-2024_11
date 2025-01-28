@@ -6,7 +6,6 @@ import java.util.Optional;
 import com.cubixedu.hr.sample.model.Employee;
 
 public interface EmployeeService {
-	
 	public Employee save(Employee employee);
 	
 	public Employee update(Employee employee);

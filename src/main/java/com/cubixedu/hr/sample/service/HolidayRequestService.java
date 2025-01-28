@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -17,6 +19,7 @@ import com.cubixedu.hr.sample.dto.HolidayRequestFilterDto;
 import com.cubixedu.hr.sample.model.Employee;
 import com.cubixedu.hr.sample.model.HolidayRequest;
 import com.cubixedu.hr.sample.repository.HolidayRequestRepository;
+import com.cubixedu.hr.sample.service.security.HrUser;
 
 
 @Service
@@ -71,9 +74,18 @@ public class HolidayRequestService {
 	}
 
 	@Transactional
-	public HolidayRequest approveHolidayRequest(long id, long approverId, boolean status) {
+	public HolidayRequest approveHolidayRequest(long id, boolean status) {
+		Employee currentEmployee = getCurrentUser().getEmployee();
 		HolidayRequest holidayRequest = holidayRequestRepository.findById(id).get();
-		holidayRequest.setApprover(employeeService.findById(approverId).get());
+		
+		Employee manager = holidayRequest.getEmployee().getManager();
+		if(manager != null) {
+			if(!manager.equals(currentEmployee)) {
+				throw new AccessDeniedException("Trying to approve with different user than the manager of the employee");
+			}
+		}
+		
+		holidayRequest.setApprover(currentEmployee);
 		holidayRequest.setApproved(status);
 		holidayRequest.setApprovedAt(LocalDateTime.now());
 		return holidayRequest;
@@ -90,11 +102,24 @@ public class HolidayRequestService {
 		return holidayRequest;
 	}
 
+	private HrUser getCurrentUser() {
+		return (HrUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+	}
+	
 	@Transactional
 	public void deleteHolidayRequest(long id) {
+		
 		HolidayRequest holidayRequest = holidayRequestRepository.findById(id).get();
 		if (holidayRequest.getApproved() != null)
 			throw new IllegalArgumentException();
+		
+		HrUser currentUser = getCurrentUser();
+		
+		if(!currentUser.getEmployee().equals(holidayRequest.getEmployee())) {
+			throw new AccessDeniedException("Trying to delete other employee's request");
+		}
+		
+		
 		holidayRequest.getEmployee().getHolidayRequests().remove(holidayRequest);
 		holidayRequestRepository.deleteById(id);
 	}

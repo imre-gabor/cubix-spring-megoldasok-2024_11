@@ -31,8 +31,12 @@ public class CompanyService {
 		return companyRepository.save(company);
 	}
 
-	public List<Company> findAll() {
-		return companyRepository.findAll();
+	public List<Company> findAll(boolean full) {
+		if(full) {
+			return companyRepository.findAllWithEmployees();
+		} else {
+			return companyRepository.findAll();
+		}
 	}
 
 	public Optional<Company> findById(long id) {
@@ -43,25 +47,27 @@ public class CompanyService {
 		companyRepository.deleteById(id);
 	}
 	
+	@Transactional
 	public Company addEmployee(long id, Employee employee) {
-		Company company = companyRepository.findById(id).get();
-		company.addEmployee(employee);
-		employeeService.save(employee);
+		Company company = companyRepository.findByIdWithEmployees(id).get();
+		Employee savedEmployee = employeeService.save(employee);
+		company.addEmployee(savedEmployee);
 		return company;
 	}
 	
+	@Transactional
 	public Company deleteEmployee(long id, long employeeId) {
-		Company company = companyRepository.findById(id).get();
+		Company company = companyRepository.findByIdWithEmployees(id).get();
 		Employee employee = employeeService.findById(employeeId).get();
 		employee.setCompany(null);
 		company.getEmployees().remove(employee);
-		employeeService.save(employee);
+		//employeeService.save(employee); --> felesleges, ha @Transactional a metódus
 		return company;
 	}
 	
 	@Transactional
 	public Company replaceEmployees(long id, List<Employee> employees) {
-		Company company = companyRepository.findById(id).get();
+		Company company = companyRepository.findByIdWithEmployees(id).get();
 		company.getEmployees().forEach(emp -> emp.setCompany(null));
 		company.getEmployees().clear();
 		

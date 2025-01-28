@@ -45,7 +45,7 @@ public class CompanyController {
 	//1. megoldás
 	@GetMapping
 	public List<CompanyDto> findAll(@RequestParam Optional<Boolean> full) {
-		return mapCompanies(companyService.findAll(), full);
+		return mapCompanies(companyService.findAll(full.orElse(false)), full);
 	}
 	
 	//2. megoldás a full paraméter kezelésére

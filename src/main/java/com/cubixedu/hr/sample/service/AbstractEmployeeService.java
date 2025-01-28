@@ -13,18 +13,36 @@ import org.springframework.util.StringUtils;
 
 import com.cubixedu.hr.sample.model.Company;
 import com.cubixedu.hr.sample.model.Employee;
+import com.cubixedu.hr.sample.model.Position;
 import com.cubixedu.hr.sample.repository.EmployeeRepository;
+import com.cubixedu.hr.sample.repository.PositionRepository;
 
 @Service
 public abstract class AbstractEmployeeService implements EmployeeService {
 	
 	@Autowired
 	EmployeeRepository employeeRepository;
+	
+	@Autowired
+	PositionRepository positionRepository;
 
 	@Override
 	@Transactional
-	public Employee save(Employee employee) {		
+	public Employee save(Employee employee) {
+		processPosition(employee);
 		return employeeRepository.save(employee);
+	}
+
+	private void processPosition(Employee employee) {
+		String posName = employee.getPosition().getName();
+		List<Position> positions = positionRepository.findByName(posName);
+		Position position = null;
+		if(positions.isEmpty()) {
+			position = positionRepository.save(employee.getPosition());
+		} else {
+			position = positions.get(0);
+		}
+		employee.setPosition(position);
 	}
 
 	@Override
@@ -32,6 +50,7 @@ public abstract class AbstractEmployeeService implements EmployeeService {
 	public Employee update(Employee employee) {
 		if(!employeeRepository.existsById(employee.getEmployeeId()))
 			return null;
+		processPosition(employee);
 		return employeeRepository.save(employee);
 	}
 
