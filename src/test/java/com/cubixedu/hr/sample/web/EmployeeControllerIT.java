@@ -6,26 +6,71 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
 
 import com.cubixedu.hr.sample.dto.EmployeeDto;
+import com.cubixedu.hr.sample.dto.LoginDto;
+import com.cubixedu.hr.sample.model.Employee;
+import com.cubixedu.hr.sample.repository.EmployeeRepository;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase
+@AutoConfigureWebTestClient(timeout = "10000m")
 public class EmployeeControllerIT {
+
+	private static final String TESTUSER = "testuser";
+	private static final String TESTPASS = "testpass";
 
 	private static final String BASE_URI = "/api/employees";
 
 	@Autowired
 	WebTestClient webTestClient;
+	
+	@Autowired
+	EmployeeRepository employeeRepository;
+	
+	@Autowired
+	PasswordEncoder passwordEncoder;
+	
+	String jwt;
 
+	@BeforeEach
+	void init() {
+		Optional<Employee> optTestUser = employeeRepository.findByUsername(TESTUSER);
+		if(!optTestUser.isPresent()) {
+			Employee newEmp = new Employee();
+			newEmp.setUsername(TESTUSER);
+			newEmp.setPassword(passwordEncoder.encode(TESTPASS));
+			employeeRepository.save(newEmp);
+		}
+		
+		
+		LoginDto loginDto = new LoginDto();
+		loginDto.setPassword(TESTPASS);
+		loginDto.setUsername(TESTUSER);
+		
+		jwt = webTestClient
+		.post()
+		.uri("/api/login")		
+		.bodyValue(loginDto)
+		.exchange()
+		.expectBody(String.class)
+		.returnResult()
+		.getResponseBody();
+	}
+	
 	
 	@Test
 	void testThatNewValidEmployeeCanBeSaved() throws Exception {
@@ -111,6 +156,7 @@ public class EmployeeControllerIT {
 		return webTestClient
 				.put()
 				.uri(path)
+				.headers(headers -> headers.setBearerAuth(jwt))
 				.bodyValue(newEmployee)
 				.exchange();
 	}
@@ -119,6 +165,7 @@ public class EmployeeControllerIT {
 		return webTestClient
 				.post()
 				.uri(BASE_URI)
+				.headers(headers -> headers.setBearerAuth(jwt))
 				.bodyValue(newEmployee)
 				.exchange();
 	}
@@ -127,6 +174,7 @@ public class EmployeeControllerIT {
 		List<EmployeeDto> responseList = webTestClient
 				.get()
 				.uri(BASE_URI)
+				.headers(headers -> headers.setBearerAuth(jwt))
 				.exchange()
 				.expectStatus()
 				.isOk()
